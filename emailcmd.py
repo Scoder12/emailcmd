@@ -12,12 +12,14 @@ emailcmd_config.py for instructions on how to add to add your own
 functions.  
 """
 
-from imapclient import IMAPClient
+import base64
+import email.message
+import smtplib
+import time
+
+import imapclient
 from pyzmail import PyzMessage as pm
-from smtplib import SMTP, SMTPServerDisconnected
-from email.message import EmailMessage
-from base64 import b64decode
-from time import sleep
+
 from emailcmd_config import *
 
 ###########
@@ -25,16 +27,18 @@ from emailcmd_config import *
 ###########
 subject = "Python"
 
+
 def imap_init():
     """
     Initialize IMAP connection
     """
-    print("Intializing IMAP...")
+    print("Initializing IMAP...")
     global i
-    i = IMAPClient(imapserver)
+    i = imapclient.IMAPClient(imapserver)
     c = i.login(radr, base64.b64decode(pwd).decode())
     i.select_folder("INBOX")
     print("Done. ")
+
 
 def smtp_init():
     """
@@ -42,14 +46,15 @@ def smtp_init():
     """
     print("Initializing SMTP...")
     global s
-    s = SMTP(smtpserver, smtpserverport)
-    c = s.starttls()[0] # The returned status code
+    s = smtplib.SMTP(smtpserver, smtpserverport)
+    c = s.starttls()[0]  # The returned status code
     if c is not 220:
-        raise Exception('Starting tls failed: ' + st(c))
+        raise Exception('Starting tls failed: ' + str(c))
     c = s.login(radr, base64.b64decode(pwd).decode())[0]
     if c is not 235:
-        raise Exception('SMTP login failed: ' + st(c))
+        raise Exception('SMTP login failed: ' + str(c))
     print("Done. ")
+
 
 def mail(text):
     """
@@ -57,7 +62,7 @@ def mail(text):
     """
     print("This email will be sent: ")
     print(text)
-    msg = EmailMessage()
+    msg = email.message.EmailMessage()
     global subject
     msg["from"] = radr
     msg["to"] = sadr
@@ -66,16 +71,18 @@ def mail(text):
     res = s.send_message(msg)
     print("Sent, res is", res)
 
+
 def get_unread():
     """
     Fetch unread emails
     """
     uids = i.search(['UNSEEN'])
-    if uids == []:
+    if not uids:
         return None
     else:
         print("Found %s unreads" % len(uids))
         return i.fetch(uids, ['BODY[]', 'FLAGS'])
+
 
 def analyze_msg(raws, a):
     """
@@ -85,35 +92,37 @@ def analyze_msg(raws, a):
     False: Invalid command
     Otherwise:
     Array: message split by lines
+    :type raws: dict
     """
     print("Analyzing message with uid " + str(a))
     msg = pm.factory(raws[a][b'BODY[]'])
     frm = msg.get_addresses('from')
     if frm[0][1] != sadr:
         print("Unread is from %s <%s> skipping" % (frm[0][0],
-                                                    frm[0[1]]))
+                                                   frm[0][1]))
         return None
     global subject
     if not subject.startswith("Re"):
         subject = "Re: " + msg.get_subject()
     print("subject is", subject)
-    if msg.text_part == None:
+    if msg.text_part is None:
         print("No text part, cannot parse")
         return None
     text = msg.text_part.get_payload().decode(msg.text_part.charset)
-    cmds = text.replace('\r', '').split('\n') # Remove any \r and split on \n
+    cmds = text.replace('\r', '').split('\n')  # Remove any \r and split on \n
     if cmds[0] not in commands:
-        print("cmd %s is not in cmds" % cmds[0])
+        print("Command %s is not in commands" % cmds[0])
         return False
     else:
         return cmds
 
+
 imap_init()
 smtp_init()
 
-while True:  #Main loop
+while True:  # Main loop
     try:
-        print() # Blank line for clarity
+        print()  # Blank line for clarity
         msgs = get_unread()
         while msgs is None:
             time.sleep(check_freq)
@@ -124,7 +133,7 @@ while True:  #Main loop
             cmds = analyze_msg(msgs, a)
             if cmds is None:
                 continue
-            elif cmds is False: # Invalid Command
+            elif cmds is False:  # Invalid Command
                 t = "The command is invalid. The commands are: \n"
                 for l in commands.keys():
                     t = t + str(l) + "\n"
@@ -142,7 +151,7 @@ while True:  #Main loop
     except OSError:
         imap_init()
         continue
-    except SMTPServerDisconnected:
+    except smtplib.SMTPServerDisconnected:
         smtp_init()
         continue
     finally:
