@@ -1,21 +1,22 @@
-"""emaailcmd_config.py
+"""emailcmd_config.py
 File with configuration information for emailcmd.py
 """
+import subprocess as sub
 ############
 # ACCOUNTS #
 ############
-radr = 'bob@example.com' # address to check and send from
-imapserver = 'imap.example.com'# imap server for account
-smtpserver = 'smtp.example.com'# smtp server for account
-smtpserverport = 587 # smtp server port for starttls
-pwd = b'bXlwYXNz' # password for account encoded with base64.b64encode
-sadr = 'alice@example.com' # address to receive commands from
+radr = 'bob@example.com'  # address to check and send from
+imapserver = 'imap.example.com'  # imap server for account
+smtpserver = 'smtp.example.com'  # smtp server for account
+smtpserverport = 587  # smtp server port for starttls
+pwd = b'bXlwYXNz'  # password for account encoded with base64.b64encode
+sadr = 'alice@example.com'  # address to receive commands from
 
 ##########
 # PARAMS #
 ##########
-check_freq = 5 # Frequency to check for emails in sec
-timeout = 20 # Default timeout for commands in sec
+check_freq = 5  # Frequency to check for emails in sec
+timeout = 20  # Default timeout for commands in sec
 
 ############
 # COMMANDS #
@@ -29,9 +30,9 @@ timeout = 20 # Default timeout for commands in sec
 #    any error messages.  
 # The first line is always the command so it cannot be a paramater.
 # The message:
-#times two
+# times two
 #
-#32
+# 32
 # Would become []
 
 # Example:
@@ -39,7 +40,7 @@ timeout = 20 # Default timeout for commands in sec
 #     return lines[2] * 2
 # commands = {"times two" : times_two}
 
-import subprocess as sub
+
 def exec_cmd(cmds):
     param = cmds[2]
     """exec_cmd: executes a command with subprocess
@@ -55,6 +56,7 @@ Stdout:
 Stderr:
 %s
 ''' % (p.returncode, p.stdout.decode(), p.stderr.decode())
+
 
 def runscript(lines):
     """
@@ -88,4 +90,4 @@ Stderr:
 #################
 # COMMANDS DICT #
 #################
-commands = {"exec cmd" : exec_cmd, "runscript" : runscript}
+commands = {"exec cmd": exec_cmd, "runscript": runscript}
